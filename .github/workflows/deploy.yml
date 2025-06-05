@@ -9,20 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.NAS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -H 192.168.100.198 >> ~/.ssh/known_hosts
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.NAS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan your-nas-ip >> ~/.ssh/known_hosts
-
-      - name: Deploy to NAS
-        run: |
-          ssh eric@your-nas-ip <<EOF
-            cd /volume1/docker/wordpress-cloud-project
-            git pull
-            docker compose up -d --build
-          EOF
+    - name: Deploy to NAS
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ericerwin@192.168.100.198 << 'EOF'
+          cd /volume1/docker/wordpress-cloud-project
+          git pull origin main
+          docker compose pull
+          docker compose up -d --remove-orphans
+        EOF

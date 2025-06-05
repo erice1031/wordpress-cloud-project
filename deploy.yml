@@ -1,0 +1,37 @@
+name: Docker WordPress CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install docker-compose -y
+
+      - name: Copy .env for build
+        run: cp .env.example .env || echo "Skipping .env copy"
+
+      - name: Docker Compose up
+        run: docker-compose up -d --build
+
+      - name: Wait for WordPress to respond
+        run: |
+          sleep 15
+          curl --retry 10 --retry-connrefused http://localhost:8000 || exit 1
+
+      - name: Tear down stack
+        run: docker-compose down
